@@ -282,6 +282,7 @@ if __name__ == "__main__":
     # 4. Pergeseran Tingkat (Level Shifting)
     shifted_block_for_dct: np.ndarray = original_luminance_block.astype(np.float32) - 128
     print(f"[Step 4: Level Shifted Block completed.]")
+    save_block_as_image(shifted_block_for_dct, "0_shifted_block.png", "Shifted Block (for DCT)", vmin=-128, vmax=127)
 
     # 5. Transformasi Kosinus Diskrit (DCT)
     dct_coefficients: np.ndarray = apply_dct_2d(shifted_block_for_dct)
@@ -291,16 +292,25 @@ if __name__ == "__main__":
     # 6. Kuantisasi
     quantized_coefficients: np.ndarray = quantize_block(dct_coefficients, QUANTIZATION_TABLE)
     print(f"[Step 6: Quantized Coefficients calculated.]")
+    print(f"Quantized Coefficients:\n{quantized_coefficients}")
     normalize_and_save_coefficients(quantized_coefficients, "3_quantized_coefficients.png", "Quantized Coefficients")
     
     # 7. Pengurutan Zig-Zag
     zig_zag_array: np.ndarray = zig_zag_scan(quantized_coefficients)
     print(f"[Step 7: Zig-Zag Ordered Array generated.]")
+    print(f"Zig-Zag Array: {zig_zag_array}")
+    normalize_and_save_coefficients(zig_zag_array.reshape(8, 8), "3_zig_zag_block.png", "Zig-Zag Block")
     
     # 8. Pengkodean Entropy (Huffman)
     huffman_codes, huffman_tree_root = build_huffman_tree_and_codes(zig_zag_array)
     encoded_bitstream: str = huffman_encode(zig_zag_array, huffman_codes)
     print(f"[Step 8: Huffman Encoding completed. Encoded bitstream length: {len(encoded_bitstream)} bits]")
+
+    # Bitsream
+    print(f"Encoded Bitstream\n: {encoded_bitstream}")
+    print("Length of Encoded Bitstream:", len(encoded_bitstream), "bits")
+    print("Original (pre-Huffman) data size:", len(zig_zag_array) * 8, "bits")
+    print("Huffman Compression Ratio:", (len(zig_zag_array) * 8) / len(encoded_bitstream))
     
     # --- JPEG Decoding Simulation ---
     print("\n--- JPEG Decoding Simulation ---")
@@ -312,14 +322,17 @@ if __name__ == "__main__":
     # 2. Anti-Pengurutan Zig-Zag
     de_zig_zag_block: np.ndarray = anti_zig_zag_scan(decoded_zig_zag_array)
     print(f"[Step 2: De-Zig-Zagged Block generated.]")
+    normalize_and_save_coefficients(de_zig_zag_block, "3_de_zig_zag_block.png", "De-Zig-Zagged Block")
 
     # 3. Dequantisasi
     dequantized_coefficients: np.ndarray = dequantize_block(de_zig_zag_block, QUANTIZATION_TABLE)
     print(f"[Step 3: Dequantized Coefficients calculated.]")
+    normalize_and_save_coefficients(dequantized_coefficients, "3_dequantized_coefficients.png", "Dequantized Coefficients")
 
     # 4. Inversi DCT (IDCT)
     reconstructed_shifted_block: np.ndarray = apply_idct_2d(dequantized_coefficients)
     print(f"[Step 4: Reconstructed Shifted Block calculated.]")
+    normalize_and_save_coefficients(reconstructed_shifted_block, "4_reconstructed_shifted_block.png", "Reconstructed Shifted Block")
 
     # 5. Inversi Pergeseran Tingkat
     reconstructed_luminance_block: np.ndarray = reconstructed_shifted_block + 128
